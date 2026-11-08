@@ -19,6 +19,7 @@
   --sueno:#5865c4; --sueno-s:#e7e9fa;
   --panal:#2f9483; --panal-s:#ddf2ee;
   --nota:#9a74c2; --nota-s:#efe7f8;
+  --bano:#3a86c8; --bano-s:#e1eefa;
   --ok:#2f9a5a; --warn:#d99a2b; --err:#c8463d;
   --comida-f:#d9704f; --sueno-f:#5865c4;
   --r:18px;
@@ -30,6 +31,7 @@
     --sueno:#8f9bff; --sueno-s:#262a4a;
     --panal:#4cc2ad; --panal-s:#1b3632;
     --nota:#bb98e6; --nota-s:#2e2440;
+    --bano:#6cb4f0; --bano-s:#1c2f42;
     --comida-f:#b9583a; --sueno-f:#4a54b3;
   }
 }
@@ -96,7 +98,9 @@ main{padding:0 14px;max-width:560px;margin:0 auto}
 .item{display:flex;gap:12px;align-items:center;background:var(--card);padding:12px;border-radius:14px;margin-bottom:6px;width:100%;text-align:left}
 .item .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex:none}
 .item .ic.comida{background:var(--comida-s)} .item .ic.sueno{background:var(--sueno-s)}
-.item .ic.panal{background:var(--panal-s)} .item .ic.nota{background:var(--nota-s)}
+.item .ic.panal{background:var(--panal-s)} .item .ic.nota{background:var(--nota-s)} .item .ic.bano{background:var(--bano-s)}
+.big.bano-b{background:var(--bano-s);min-height:72px;flex-direction:row;gap:12px;width:100%;font-size:17px}
+.big.bano-b small{display:block;text-align:left}
 .item .tx{flex:1;min-width:0}
 .item .t1{font-weight:600} .item .t2{font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .hr{font-variant-numeric:tabular-nums;font-size:14px;color:var(--sub);text-align:right;flex:none}
@@ -214,6 +218,9 @@ nav.tabs button.on .e{filter:none;opacity:1}
       <button class="big panal" data-panal="ambos"><span class="em">💧💩</span>Ambos</button>
     </div>
 
+    <h2>Baño</h2>
+    <button class="big bano-b" id="btnBano"><span class="em">🛁</span><span style="text-align:left">Bañé a Tommy<small id="subBano">Un toque para registrar</small></span></button>
+
     <h2>Otro</h2>
     <button class="big nota-b" data-form="nota" style="width:100%"><span class="em" style="font-size:22px">📝</span>Agregar una nota</button>
     <div id="avisoRespaldo"></div>
@@ -319,11 +326,12 @@ var TIPOS = {
   pipi:      {tipo:'panal',  icono:'💧', nombre:'Pañal: pipí', corto:'Pipí'},
   caca:      {tipo:'panal',  icono:'💩', nombre:'Pañal: caca', corto:'Caca'},
   ambos:     {tipo:'panal',  icono:'🧷', nombre:'Pañal: pipí y caca', corto:'Pipí y caca'},
+  bano:      {tipo:'bano',   icono:'🛁', nombre:'Baño', corto:'Baño'},
   nota:      {tipo:'nota',   icono:'📝', nombre:'Nota', corto:'Nota'}
 };
 var SUBS_DE = {
   comida:['pecho_izq','pecho_der','mamadera','solido'],
-  sueno:['siesta','noche'], panal:['pipi','caca','ambos'], nota:['nota']
+  sueno:['siesta','noche'], panal:['pipi','caca','ambos'], bano:['bano'], nota:['nota']
 };
 var COLS = ['id','tipo','subtipo','inicio','fin','cantidad','detalle','nota','autor'];
 var DIAS_CARGA = 31;
@@ -513,6 +521,10 @@ function panal(sub){
     ? function(){ borrarReg(n.id); }
     : function(){ abrirForm(S.regs.find(function(x){return x.id===n.id;}) || norm(n)); });
 }
+function banar(){
+  var n = nuevoReg('bano'); guardarReg(n);
+  aviso('Baño registrado · '+hhmm(ahora()), 'Detalle', function(){ abrirForm(S.regs.find(function(x){return x.id===n.id;}) || norm(n)); });
+}
 function sugerenciaLado(){
   var p = S.regs.find(function(r){ return r.subtipo==='pecho_izq' || r.subtipo==='pecho_der'; });
   if (!p) return null;
@@ -561,6 +573,10 @@ function pintarInicio(){
   else u += cajaUlt('Despierta', sue ? lapso(ahora()-fin(sue)) : '—', sue ? 'desde '+hhmm(fin(sue)) : 'sin registros', 'sueno');
   u += cajaUlt('Pañal', pan ? lapso(ahora()-pan.t0) : '—', pan ? TIPOS[pan.subtipo].corto : 'sin registros', 'panal');
   document.getElementById('ultimos').innerHTML = u;
+
+  // Último baño
+  var ban = S.regs.find(function(r){ return r.tipo==='bano'; }), sb = document.getElementById('subBano');
+  if (sb) sb.textContent = ban ? 'Último: '+etiquetaDia(ban.t0).toLowerCase()+' a las '+hhmm(ban.t0)+' ('+lapso(ahora()-ban.t0)+')' : 'Un toque para registrar';
 
   // Lado sugerido
   var sug = sugerenciaLado(), comiendo = corriendo('comida');
@@ -621,7 +637,7 @@ function claveNoche(ms){ var d=new Date(ms); if (d.getHours()<12) d.setDate(d.ge
 
 function contarDia(d0){
   var d1 = sumarDias(d0,1), c={tomas:0, pechoMs:0, pechoIzq:0, pechoDer:0, ml:0, mamaderas:0, solidos:0,
-    siestaMs:0, siestas:0, nocheMs:0, nocheTramos:0, pipi:0, caca:0, panales:0};
+    siestaMs:0, siestas:0, nocheMs:0, nocheTramos:0, pipi:0, caca:0, panales:0, banos:0};
   S.regs.forEach(function(r){
     var e = fin(r);
     if (r.tipo==='comida' && r.t0>=d0 && r.t0<d1){
@@ -637,6 +653,7 @@ function contarDia(d0){
       if (r.subtipo!=='caca') c.pipi++;
       if (r.subtipo!=='pipi') c.caca++;
     }
+    if (r.tipo==='bano' && r.t0>=d0 && r.t0<d1) c.banos++;
   });
   c.despertares = Math.max(0, c.nocheTramos-1);
   return c;
@@ -657,6 +674,7 @@ function pintarResumen(){
       tj('😴 Siestas', dur(c.siestaMs), c.siestas+(c.siestas===1?' siesta':' siestas'))+
       tj('🌙 Anoche', n.nocheTramos? dur(n.nocheMs) : '—', n.nocheTramos? n.despertares+(n.despertares===1?' despertar':' despertares') : 'sin registro', '')+
       tj('🧷 Pañales', c.panales, c.pipi+' pipí · '+c.caca+' caca')+
+      tj('🛁 Baño', c.banos ? (c.banos===1?'Sí':c.banos+' veces') : 'Todavía no', ultimoBanoTexto(), 'ancha')+
       '</div>';
   } else {
     var dias=[]; for (var i=6;i>=0;i--) dias.push(sumarDias(hoy,-i));
@@ -671,11 +689,11 @@ function pintarResumen(){
         '<span class="n">'+(t?durCorta(t):'—')+'</span></div>';
     });
     b += '<div class="ley"><span><i style="background:var(--sueno)"></i>Noche (la que empezó ese día)</span><span><i style="background:var(--sueno);opacity:.45"></i>Siestas</span></div></div>';
-    var t = '<div class="tabla"><table class="sem"><tr><th>Día</th><th>Tomas</th><th>Pecho</th><th>ml</th><th>Siesta</th><th>Noche</th><th>Pañ.</th></tr>';
+    var t = '<div class="tabla"><table class="sem"><tr><th>Día</th><th>Tomas</th><th>Pecho</th><th>ml</th><th>Siesta</th><th>Noche</th><th>Pañ.</th><th>Baño</th></tr>';
     datos.slice().reverse().forEach(function(x){
       var c=x.c;
       t += '<tr><td>'+diaCorto(x.d)+'</td><td>'+c.tomas+'</td><td>'+(c.pechoMs?durCorta(c.pechoMs):'—')+'</td><td>'+(c.ml||'—')+
-        '</td><td>'+(c.siestaMs?durCorta(c.siestaMs):'—')+'</td><td>'+(c.nocheMs?durCorta(c.nocheMs):'—')+'</td><td>'+c.panales+'</td></tr>';
+        '</td><td>'+(c.siestaMs?durCorta(c.siestaMs):'—')+'</td><td>'+(c.nocheMs?durCorta(c.nocheMs):'—')+'</td><td>'+c.panales+'</td><td>'+(c.banos?'✓':'—')+'</td></tr>';
     });
     t += '</table></div>';
     var p = promedios(datos.slice(0,6)); // días completos (sin hoy)
@@ -685,7 +703,8 @@ function pintarResumen(){
       '</div>'+b+t;
   }
 }
-function tj(k,v,d){ return '<div class="tj"><div class="k">'+k+'</div><div class="v">'+esc(v)+'</div><div class="d">'+esc(d)+'</div></div>'; }
+function ultimoBanoTexto(){ var b=S.regs.find(function(r){return r.tipo==='bano';}); return b ? 'último: '+etiquetaDia(b.t0).toLowerCase()+' '+hhmm(b.t0) : 'sin registros'; }
+function tj(k,v,d,cl){ return '<div class="tj'+(cl?' '+cl:'')+'"><div class="k">'+k+'</div><div class="v">'+esc(v)+'</div><div class="d">'+esc(d)+'</div></div>'; }
 function promedios(datos){
   var con = datos.filter(function(x){ return x.c.tomas || x.c.siestaMs || x.c.nocheMs || x.c.panales; });
   if (!con.length) return {tomas:'—', sueno:'—'};
@@ -710,8 +729,8 @@ function pintarForm(){
   h += '<h3>'+titulo+'</h3>';
   if (F.pasado){
     h += '<div class="campo"><label>¿Qué fue?</label><div class="chips">';
-    ['comida','sueno','panal','nota'].forEach(function(t){
-      var n={comida:'🍽️ Comida',sueno:'😴 Sueño',panal:'🧷 Pañal',nota:'📝 Nota'}[t];
+    ['comida','sueno','panal','bano','nota'].forEach(function(t){
+      var n={comida:'🍽️ Comida',sueno:'😴 Sueño',panal:'🧷 Pañal',bano:'🛁 Baño',nota:'📝 Nota'}[t];
       h += '<button class="chip'+(r.tipo===t?' on':'')+'" data-ftipo="'+t+'">'+n+'</button>';
     });
     h += '</div></div>';
@@ -728,6 +747,7 @@ function pintarForm(){
     h += campoChips('Qué tomó', ['Fórmula','Leche materna'], r.detalle);
   }
   if (r.subtipo==='solido') h += '<div class="campo"><label>¿Qué comió?</label><input id="fDet" value="'+esc(r.detalle)+'" placeholder="Ej: puré de zapallo, 3 cucharadas"></div>';
+  if (r.subtipo==='bano') h += campoChips('Cómo fue (opcional)', ['Tina','Ducha','Con esponja','Con champú'], r.detalle);
   if (r.subtipo==='caca' || r.subtipo==='ambos') h += campoChips('Cómo era (opcional)', ['Amarilla','Café','Verde','Líquida','Pastosa','Dura'], r.detalle);
   var conReloj = d.reloj;
   h += '<div><div class="campo"><label>'+(conReloj?'Inicio':'Hora')+'</label><input id="fIni" type="datetime-local" value="'+aInput(r.t0)+'"></div>';
@@ -864,13 +884,13 @@ function cuerpoInforme(nd){
   var h = '<div class="inf">'+
     '<h1>Informe de '+esc(nombre)+'</h1><div class="s">Tommy App · '+(S.config.nacimiento? 'Edad: '+esc(edad(S.config.nacimiento))+' · ':'')+'Período: '+per+'</div>'+
     '<h2>Promedios por día</h2><div><span class="k">Tomas<b>'+p.tomas+'</b></span><span class="k">Sueño total<b>'+p.sueno+'</b></span>'+
-    '<span class="k">Mamadera<b>'+promML(datos)+'</b></span><span class="k">Pañales<b>'+promPan(datos)+'</b></span></div>'+
-    '<h2>Detalle por día</h2><table><tr><th>Día</th><th>Tomas</th><th>Pecho (izq/der)</th><th>Tiempo pecho</th><th>Mamadera</th><th>Sólidos</th><th>Siestas</th><th>Noche</th><th>Despertares</th><th>Pipí</th><th>Caca</th></tr>';
+    '<span class="k">Mamadera<b>'+promML(datos)+'</b></span><span class="k">Pañales<b>'+promPan(datos)+'</b></span><span class="k">Días con baño<b>'+datos.filter(function(x){return x.c.banos;}).length+' de '+datos.length+'</b></span></div>'+
+    '<h2>Detalle por día</h2><table><tr><th>Día</th><th>Tomas</th><th>Pecho (izq/der)</th><th>Tiempo pecho</th><th>Mamadera</th><th>Sólidos</th><th>Siestas</th><th>Noche</th><th>Despertares</th><th>Pipí</th><th>Caca</th><th>Baño</th></tr>';
   datos.slice().reverse().forEach(function(z){
     var c=z.c, dd=new Date(z.d);
     h += '<tr><td>'+DSEMC[dd.getDay()]+' '+dd.getDate()+' '+MESES[dd.getMonth()]+'</td><td>'+c.tomas+'</td><td>'+c.pechoIzq+' / '+c.pechoDer+'</td><td>'+(c.pechoMs?dur(c.pechoMs):'—')+
       '</td><td>'+(c.ml? c.ml+' ml':'—')+'</td><td>'+(c.solidos||'—')+'</td><td>'+(c.siestaMs? dur(c.siestaMs)+' ('+c.siestas+')':'—')+'</td><td>'+(c.nocheMs?dur(c.nocheMs):'—')+
-      '</td><td>'+(c.nocheTramos? c.despertares:'—')+'</td><td>'+c.pipi+'</td><td>'+c.caca+'</td></tr>';
+      '</td><td>'+(c.nocheTramos? c.despertares:'—')+'</td><td>'+c.pipi+'</td><td>'+c.caca+'</td><td>'+(c.banos?'✓':'—')+'</td></tr>';
   });
   h += '</table><div class="s" style="margin-top:6px">"Noche" corresponde a la noche que comenzó ese día.</div>';
   var notas = S.regs.filter(function(r){ return r.nota && r.t0>=dias[0]; }).sort(function(a,b){return a.t0-b.t0;});
@@ -932,6 +952,7 @@ document.addEventListener('click', function(ev){
   if (a('data-alt')) return alternarSueno(a('data-alt'));
   if (a('data-panal')) return panal(a('data-panal'));
   if (el.id==='btnDormir') return dormir();
+  if (el.id==='btnBano') return banar();
   if (a('data-form')){ var r = nuevoReg(a('data-form')); return abrirForm(norm(r), true); }
   if (a('data-edit')){ var x = S.regs.find(function(r){ return r.id===a('data-edit'); }); if (x) abrirForm(x); return; }
   if (a('data-v')){

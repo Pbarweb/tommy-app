@@ -1,5 +1,5 @@
 /* Tommy App — permite abrir la app sin internet */
-var CACHE = 'tommy-app-v1';
+var CACHE = 'tommy-app-v2';
 var ARCHIVOS = ['./', './index.html', './manifest.json', './icono-180.png', './icono-192.png', './icono-512.png'];
 self.addEventListener('install', function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ARCHIVOS); }).then(function(){ return self.skipWaiting(); }));
